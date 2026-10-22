@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>OpenAI & Anthropic MTS 面试题深度调研</title>
+    <style>
+      :root {
+        --bg: #f7f5f1;
+        --surface: #ffffff;
+        --surface-2: #efede7;
+        --ink: #1c1a17;
+        --ink-2: #4c4741;
+        --ink-3: #7d766c;
+        --line: #ddd8cf;
+        --oai: #0b7a5c;
+        --oai-soft: #e3f0ea;
+        --ant: #b4502a;
+        --ant-soft: #f7e8df;
+        --warn: #9a6a12;
+        --warn-soft: #f6ecd4;
+        --conf: #2e5f9e;
+        --conf-soft: #e4ecf6;
+        --radius: 10px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #16140f;
+          --surface: #211e19;
+          --surface-2: #2a2721;
+          --ink: #ece7dd;
+          --ink-2: #c4bdae;
+          --ink-3: #948b7c;
+          --line: #3b372f;
+          --oai: #4cc39a;
+          --oai-soft: #173029;
+          --ant: #e08a63;
+          --ant-soft: #38241a;
+          --warn: #d9a94a;
+          --warn-soft: #38300f;
+          --conf: #7fa8d9;
+          --conf-soft: #1d2c42;
+        }
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "IBM Plex Sans", -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+        font-size: 16px;
+        line-height: 1.65;
+        -webkit-font-smoothing: antialiased;
+      }
+      .wrap { max-width: 1060px; margin: 0 auto; padding: 0 20px 80px; }
+      a { color: var(--conf); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      code, .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.92em; }
+
+      /* ---------- header ---------- */
+      header.hero { padding: 44px 0 8px; }
+      .hero .kicker {
+        font-size: 13px; letter-spacing: 0.14em; color: var(--ink-3);
+        text-transform: uppercase; margin: 0 0 10px;
+      }
+      h1 {
+        font-size: clamp(28px, 5.4vw, 44px); line-height: 1.18; margin: 0 0 14px;
+        font-weight: 700; letter-spacing: -0.01em;
+      }
+      .hero .lede { font-size: 17px; color: var(--ink-2); max-width: 760px; margin: 0 0 18px; }
+      .meta-row { display: flex; flex-wrap: wrap; gap: 8px 22px; font-size: 13.5px; color: var(--ink-3); margin-bottom: 26px; }
+      .meta-row b { color: var(--ink-2); font-weight: 600; }
+      .meta-finding {
+        border: 1px solid var(--line); border-left: 4px solid var(--warn);
+        background: var(--surface); border-radius: var(--radius);
+        padding: 14px 18px; font-size: 15px; margin-bottom: 8px;
+      }
+      .meta-finding b { color: var(--warn); }
+
+      /* ---------- nav ---------- */
+      nav.toc {
+        position: sticky; top: 0; z-index: 20;
+        background: color-mix(in srgb, var(--bg) 88%, transparent);
+        backdrop-filter: blur(8px);
+        border-bottom: 1px solid var(--line);
+        margin: 0 -20px; padding: 10px 20px;
+        display: flex; gap: 6px; flex-wrap: wrap;
+      }
+      nav.toc a {
+        color: var(--ink-2); font-size: 14px; font-weight: 600;
+        padding: 5px 12px; border-radius: 999px; border: 1px solid transparent;
+      }
+      nav.toc a:hover { text-decoration: none; border-color: var(--line); background: var(--surface); }
+      nav.toc a.oai { color: var(--oai); }
+      nav.toc a.ant { color: var(--ant); }
+
+      /* ---------- sections ---------- */
+      section { padding-top: 44px; }
+      h2 {
+        font-size: clamp(23px, 3.6vw, 30px); margin: 0 0 6px; font-weight: 700;
+        display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+      }
+      h2 .tag { font-size: 12px; letter-spacing: 0.1em; padding: 3px 10px; border-radius: 999px; font-weight: 700; }
+      .tag.oai { background: var(--oai-soft); color: var(--oai); }
+      .tag.ant { background: var(--ant-soft); color: var(--ant); }
+      h3 { font-size: 19px; margin: 30px 0 8px; font-weight: 700; }
+      h4 { font-size: 16px; margin: 20px 0 6px; font-weight: 700; }
+      p { margin: 8px 0; }
+      .sub { color: var(--ink-2); font-size: 15px; max-width: 820px; }
+      ul, ol { margin: 8px 0; padding-left: 22px; }
+      li { margin: 5px 0; }
+      li::marker { color: var(--ink-3); }
+
+      /* confidence chips */
+      .chip {
+        display: inline-block; font-size: 11.5px; font-weight: 700; letter-spacing: 0.04em;
+        padding: 1px 8px; border-radius: 999px; vertical-align: 2px; white-space: nowrap;
+      }
+      .chip.ok { background: var(--conf-soft); color: var(--conf); }
+      .chip.one { background: var(--warn-soft); color: var(--warn); }
+      .chip.conflict { background: var(--ant-soft); color: var(--ant); }
+      .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--ink-2); margin: 14px 0 4px; }
+
+      /* cards & callouts */
+      .card {
+        background: var(--surface); border: 1px solid var(--line);
+        border-radius: var(--radius); padding: 18px 20px; margin: 14px 0;
+      }
+      .callout {
+        border-radius: var(--radius); padding: 14px 18px; margin: 14px 0; font-size: 15px;
+        border: 1px solid var(--line); background: var(--surface-2);
+      }
+      .callout.oai { border-left: 4px solid var(--oai); }
+      .callout.ant { border-left: 4px solid var(--ant); }
+      .callout.warn { border-left: 4px solid var(--warn); }
+      .callout p:first-child { margin-top: 0; }
+      .callout p:last-child { margin-bottom: 0; }
+      blockquote {
+        margin: 12px 0; padding: 10px 16px; border-left: 3px solid var(--line);
+        color: var(--ink-2); font-size: 15px; background: var(--surface);
+      }
+      blockquote p { margin: 4px 0; }
+
+      /* loop timeline */
+      .loop { list-style: none; padding: 0; margin: 16px 0; counter-reset: step; }
+      .loop li {
+        position: relative; padding: 0 0 20px 46px; margin: 0;
+      }
+      .loop li::before {
+        counter-increment: step; content: counter(step);
+        position: absolute; left: 0; top: 1px;
+        width: 30px; height: 30px; border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; font-weight: 700; color: #fff;
+        background: var(--ink-3);
+      }
+      .loop.oai li::before { background: var(--oai); }
+      .loop.ant li::before { background: var(--ant); }
+      .loop li::after {
+        content: ""; position: absolute; left: 14.5px; top: 36px; bottom: 2px;
+        width: 1px; background: var(--line);
+      }
+      .loop li:last-child::after { display: none; }
+      .loop .step-title { font-weight: 700; font-size: 16.5px; }
+      .loop .step-body { color: var(--ink-2); font-size: 15px; }
+      .loop .step-body p { margin: 4px 0; }
+
+      /* tables */
+      .tbl-wrap { margin: 14px 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 14.5px; background: var(--surface); }
+      th, td { border: 1px solid var(--line); padding: 9px 12px; vertical-align: top; text-align: left; }
+      th { background: var(--surface-2); font-weight: 700; font-size: 13.5px; }
+      td p { margin: 3px 0; }
+      .q-table td:first-child { font-weight: 600; width: 26%; }
+      .cmp td:first-child { font-weight: 700; width: 17%; background: var(--surface-2); }
+      .cmp td { width: 41.5%; }
+      @media (max-width: 680px) {
+        table, thead, tbody, tr, th, td { display: block; }
+        thead { display: none; }
+        tr { border: 1px solid var(--line); margin-bottom: 10px; border-radius: 8px; overflow: hidden; }
+        td { border: none; border-top: 1px solid var(--line); }
+        td:first-child { border-top: none; }
+        .q-table td:first-child, .cmp td { width: auto; }
+        td::before {
+          content: attr(data-h); display: block; font-size: 11.5px; font-weight: 700;
+          letter-spacing: 0.06em; color: var(--ink-3); text-transform: uppercase; margin-bottom: 2px;
+        }
+        td.no-label::before { content: none; }
+      }
+
+      /* hot list */
+      .hot { list-style: none; padding: 0; margin: 12px 0; counter-reset: hot; }
+      .hot li {
+        display: flex; gap: 14px; padding: 12px 16px; margin: 8px 0;
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+      }
+      .hot .rank {
+        flex: 0 0 auto; width: 30px; height: 30px; border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 15px; background: var(--surface-2); color: var(--ink-2);
+      }
+      .hot .q { font-weight: 600; }
+      .hot .d { color: var(--ink-2); font-size: 14.5px; }
+      .hot .when { margin-left: auto; flex: 0 0 auto; font-size: 12.5px; color: var(--ink-3); white-space: nowrap; }
+
+      /* design prompt chips groups */
+      .prompt-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 14px 0; }
+      .prompt-grid .pg { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+      .prompt-grid .pg h5 { margin: 0 0 8px; font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+      .prompt-grid .pg ul { margin: 0; padding-left: 18px; font-size: 14.5px; }
+
+      /* prep plan */
+      .plan-step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 20px; margin: 14px 0; }
+      .plan-step .prio {
+        display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: 0.08em;
+        padding: 2px 10px; border-radius: 5px; margin-bottom: 6px;
+      }
+      .prio.p0 { background: var(--ant); color: #fff; }
+      .prio.p1 { background: var(--warn); color: #fff; }
+      .prio.p2 { background: var(--conf); color: #fff; }
+      .prio.p3 { background: var(--ink-3); color: #fff; }
+      .plan-step h3 { margin-top: 2px; }
+      .weeks { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; margin: 14px 0; }
+      .weeks .wk { background: var(--surface-2); border-radius: var(--radius); padding: 14px 16px; font-size: 14.5px; }
+      .weeks .wk b { display: block; margin-bottom: 4px; }
+
+      details { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); margin: 12px 0; }
+      details summary { cursor: pointer; padding: 13px 18px; font-weight: 700; font-size: 15.5px; }
+      details .inner { padding: 0 18px 14px; }
+      details .inner p, details .inner li { font-size: 15px; }
+
+      .src-list { font-size: 14px; }
+      .src-list li { margin: 7px 0; }
+      .src-list .when { color: var(--ink-3); }
+      footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); font-size: 13.5px; color: var(--ink-3); }
+      .src-note { font-size: 13px; color: var(--ink-3); margin-top: 6px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+
+      <header class="hero">
+        <p class="kicker">Deep Research · 2026 年 10 月 22 日</p>
+        <h1>OpenAI 与 Anthropic 的 MTS（软件工程师）面试，到底考什么</h1>
+        <p class="lede">两家公司都不公布官方题库。以下内容综合自 2025–2026 年的候选人面经（Glassdoor、Blind、1point3acres 等）、基于面经整理的备考指南（IGotAnOffer、Hello Interview、InterviewQuery 等），以及 2026 年 10 月两份题库统计（Land the Lab：OpenAI n=144 道报告题目、Anthropic n=72 道）。面向画像：资深后端 / 分布式系统工程师转 AI 方向。</p>
+        <div class="meta-row">
+          <span><b>调研日期</b> 2026-10-22（PDT）</span>
+          <span><b>来源优先级</b> 2025–2026 年报告</span>
+          <span><b>目标岗位</b> Member of Technical Staff, SWE</span>
+        </div>
+        <div class="meta-finding">
+          <b>最重要的元结论：</b>两家的流程都<b>因团队而异</b>。OpenAI 的流程高度去中心化、没有单一标准；Anthropic 的轮次组合更固定（价值观轮是标配），但顺序和形式因 org（Research vs Applied/Product）和级别而变。第一通 recruiter 电话里，务必问清你自己的确切轮次、形式、AI 使用政策、是 take-home 还是现场写代码。
+        </div>
+        <div class="legend">
+          <span><span class="chip ok">已确认</span> 多个独立来源一致</span>
+          <span><span class="chip one">单一来源</span> 仅一份报告，可能出现、非必然</span>
+          <span><span class="chip conflict">来源冲突</span> 说法不一致，两种都列出</span>
+        </div>
+      </header>
+
+      <nav class="toc">
+        <a href="#snapshot">30 秒速览</a>
+        <a class="oai" href="#openai">OpenAI 全解</a>
+        <a class="ant" href="#anthropic">Anthropic 全解</a>
+        <a href="#compare">逐项对比</a>
+        <a href="#plan">备考计划</a>
+        <a href="#caveats">未证实事项</a>
+        <a href="#sources">全部来源</a>
+      </nav>
+
+      <!-- ============ SNAPSHOT ============ -->
+      <section id="snapshot">
+        <h2>30 秒速览</h2>
+        <p class="sub">两家公司的面试气质截然不同：OpenAI 是一台「生产级编码机器测试」，Anthropic 是「边写边扩展的编码 + 价值观一票否决」。</p>
+        <div class="tbl-wrap">
+          <table class="cmp">
+            <thead><tr><th>维度</th><th>OpenAI MTS SWE</th><th>Anthropic MTS SWE</th></tr></thead>
+            <tbody>
+              <tr>
+                <td data-h="维度">流程核心</td>
+                <td data-h="OpenAI">生产级编码能力测试</td>
+                <td data-h="Anthropic">Build-and-extend 编码 + 价值观否决权</td>
+              </tr>
+              <tr>
+                <td data-h="维度">编码风格</td>
+                <td data-h="OpenAI">实战型、高代码量、CoderPad 从零搭建，3–5 个递进部分；资深岗另有专门的<b>重构 / 调试轮</b></td>
+                <td data-h="Anthropic"><b>90 分钟 CodeSignal</b>（4 个递进关卡）+ 现场实战编码（爬虫、去重、profiler 调用栈）</td>
+              </tr>
+              <tr>
+                <td data-h="维度">现场轮 AI 政策</td>
+                <td data-h="OpenAI">禁用 AI、<b>禁用自动补全</b>（2026 年 10 月报告）；可查文档</td>
+                <td data-h="Anthropic">默认禁用 AI（官方候选人指引）；可查文档/搜索。2025 年中政策转向后，申请材料和备考阶段明确允许用 Claude</td>
+              </tr>
+              <tr>
+                <td data-h="维度">系统设计风格</td>
+                <td data-h="OpenAI">偏经典/产品型（2026 年 10 月统计 50 题中 31 题为经典题）+ AI 原生题（ChatGPT 服务、向量数据库、GPU 调度）</td>
+                <td data-h="Anthropic">偏 AI 基础设施（统计 29 题中 21 题为 AI/ML）；<b>先算数学账</b>，在共享 Google Doc 里用文字写；推理批处理（inference batching）是标志性题目</td>
+              </tr>
+              <tr>
+                <td data-h="维度">最难 / 最常挂的轮次</td>
+                <td data-h="OpenAI">编码本身——据报告，编码分低即使其他轮全优也无法挽回；重构轮常让资深候选人措手不及</td>
+                <td data-h="Anthropic"><b>文化 / 价值观轮——头号淘汰原因</b>（recruiter 与多份指南一致）；通过全部轮次后，团队匹配阶段仍可能因无坑位被拒</td>
+              </tr>
+              <tr>
+                <td data-h="维度">通用 SWE 的 ML 深度</td>
+                <td data-h="OpenAI">概念级：KV cache、批处理、流式、token/限流的经济账。从零写 PyTorch 只出现在 ML/研究岗 track</td>
+                <td data-h="Anthropic">概念级 + 许多流程里有一轮专门的 <b>LLM 与提示工程轮</b>：token 管理、限流、成本、多步 LLM 调用、失败模式</td>
+              </tr>
+              <tr>
+                <td data-h="维度">整体周期</td>
+                <td data-h="OpenAI">通常 2–8 周，最快 3–4 周；仅 referral 到 screen 就可能等约 6 周</td>
+                <td data-h="Anthropic">快时约 3–4 周；含团队匹配可达 4 周至 3 个月以上；背调（references）在流程<b>进行中</b>就查，不是最后</td>
+              </tr>
+              <tr>
+                <td data-h="维度">级别与团队</td>
+                <td data-h="OpenAI">级别（外部候选人多为 L4/L5）和团队常在流程<b>结束后</b>才定；降级录用常见</td>
+                <td data-h="Anthropic">宽口径岗位同样是过线后再匹配团队，匹配等待可达 2–8 周</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ OPENAI ============ -->
+      <section id="openai">
+        <h2>OpenAI <span class="tag oai">PART I</span></h2>
+        <p class="sub">核心特征：刻意远离 LeetCode 套路题，考的是「在 CoderPad 里从零写出生产质量代码」的速度与完成度。编码分是硬门槛。</p>
+
+        <h3>完整流程</h3>
+        <span class="chip ok">已确认</span>
+        <ol class="loop oai">
+          <li>
+            <div class="step-title">简历筛选</div>
+            <div class="step-body"><p>竞争极其激烈。看重规模与影响、量化成果；基础设施团队看重系统类工作。</p></div>
+          </li>
+          <li>
+            <div class="step-title">Recruiter 电话 — 30–45 分钟</div>
+            <div class="step-body">
+              <p>背景、「Tell me about yourself / 过一遍简历 / Why OpenAI?」，以及在招团队、时间线。<b>不只是走流程：</b>Land the Lab 2026 年 10 月的分析指出，这一轮会问你对 AGI 和 AI 安全的看法，「AI 安全问题答得弱，流程可能就此结束」——把它当成真正的关卡，通话前先准备好自己的安全观。</p>
+            </div>
+          </li>
+          <li>
+            <div class="step-title">Hiring Manager 电话 — 20–30 分钟</div>
+            <div class="step-body"><p>背景、职业目标、与团队相关的技术、过往系统与权衡；研究/应用岗会深挖某个研究产出或项目。（顺序因团队而异，有些流程 HM 在后面跑最终行为轮。）</p></div>
+          </li>
+          <li>
+            <div class="step-title">技能评估 — 三种形式之一（无统一标准）</div>
+            <div class="step-body">
+              <p>① CoderPad / HackerRank 现场编码或结对编码（最常见）；② 系统设计 screen（资深岗更常见）；③ HackerRank / 私有仓库 take-home（因团队而异，见下文）。</p>
+              <p><b>2026 年 10 月新变体：</b>多位候选人报告是<em>两场</em> 60 分钟 screen——一场编码、一场设计，有时同日进行；另有一位 Glassdoor 2026 年 10 月候选人报告单场 90 分钟 CoderPad，编码 + 简短设计讨论合并。</p>
+            </div>
+          </li>
+          <li>
+            <div class="step-title">Final loop（默认虚拟，SF 可选现场）— 4–6 小时，4–6 位面试官，1–2 天</div>
+            <div class="step-body">
+              <ul>
+                <li>编码 #2（从零搭建，规模大于 screen）</li>
+                <li><b>重构 / 调试轮</b>（资深流程尤其常见，见下文）</li>
+                <li>系统设计（若已有 design screen，这里是第二场、更深）</li>
+                <li><b>项目展示 / 复盘 — 2026 年 10 月报告为 45 分钟：</b>几页 slides 讲 1–2 个你主导的项目，随后快速追问 ownership、考虑过的替代方案、「放大 10 倍会怎样」。资深/Staff 候选人应默认有这一轮。</li>
+                <li>与资深/HM 的行为面（领导力、ownership）</li>
+                <li>跨职能协作行为面（部分流程）</li>
+              </ul>
+            </div>
+          </li>
+          <li>
+            <div class="step-title">决策、定级、团队匹配 — 约 1 周，最长约 2 周</div>
+            <div class="step-body"><p>定级与匹配都在最后进行；外部候选人多落在 L4/L5，资深校准 L5/L6。决策阶段可能要求两位推荐人（含一位 manager）。相对原 title 被降级很常见。有竞争 offer 截止日期会加速——尽早告诉 recruiter。</p></div>
+          </li>
+        </ol>
+        <p class="sub"><b>各阶段考什么：</b>recruiter = 动机 + 安全/使命观 + 团队契合；screen = 独立实战编码（IGotAnOffer 明确：面试官需要给出多次实质性提示即判 fail）；design screen = 具体的 API + 数据 schema；onsite 设计 = 规模化、重试/幂等、生产正确性；项目展示 = 真实的 ownership 深度（强 coder 常因讲得太浅挂在这里）；行为/HM = ownership、模糊性、冲突、使命感。</p>
+
+        <div class="callout oai">
+          <p><b>2025–2026 的变化</b></p>
+          <p>· 编码 screen 与 onsite 编码<b>禁用 AI、禁用自动补全</b>，可查文档（Land the Lab，2026 年 10 月，n=144）。练习时请关掉补全。<br>
+          · <span class="chip one">单一来源 / 新兴</span> 部分流程出现 beta 版 <b>「agentic coding」轮</b>：用 AI 编程 agent 处理一个手工搞不定的大代码库——这是唯一明确允许用 AI 的轮次（SupaCV 2026 playbook）。不要默认会有，问 recruiter。<br>
+          · 早期职业候选人可能在 screen 之前先做一个限时在线测评。</p>
+        </div>
+
+        <h3>编码题：题型全景</h3>
+        <p><span class="chip ok">已确认</span> 刻意远离 LeetCode：题目是生产形态、多部分递进（3–5 个部分）、代码量大——「全程都在打字」。生产质量计分：结构、命名、边界、<b>测试</b>。Python 是最稳妥的语言（面试以 Python 为主，多位候选人称 C++ 让他们丢了时间）。<b>一个写完并测过的解法胜过一个没写完的聪明解法</b>；screen 里干净地完成 2–3 个部分是报告中的通常过线标准。</p>
+
+        <h4>经典题族（2024–2026，多来源反复出现）</h4>
+        <div class="tbl-wrap">
+          <table class="q-table">
+            <thead><tr><th>题目</th><th>描述 / 追问</th><th>类型</th></tr></thead>
+            <tbody>
+              <tr>
+                <td data-h="题目">Resumable iterator（可恢复迭代器）</td>
+                <td data-h="描述">实现带 <code>getState()/setState()</code> 的迭代器：Part 1 列表 → 可恢复的 JSON <b>文件</b>迭代器 → <b>多文件</b>迭代器（处理空文件）→ 2D/3D 变体、异步变体。强调 TDD，先写测试。1point3acres 亦有报告。</td>
+                <td data-h="类型">实战 / 状态</td>
+              </tr>
+              <tr>
+                <td data-h="题目">In-memory SQL / 数据库</td>
+                <td data-h="描述">建表、INSERT / 带 WHERE 的 SELECT、GROUP BY、ORDER BY、JOIN。变体（Glassdoor，已拿 offer 候选人）：简单 insert/select/delete，但<b>按 LSM tree 结构实现——memtable + tombstone</b>，而不是直接删记录。</td>
+                <td data-h="类型">实战 / 搭建</td>
+              </tr>
+              <tr>
+                <td data-h="题目"><code>cd</code> 命令</td>
+                <td data-h="描述"><code>cd(current, target)</code> 处理 <code>.</code>、<code>..</code>、绝对路径；Part 2：<code>~</code>；Part 3：符号链接字典——最长/最具体匹配优先，检测符号链接环（如 A→B→A，返回 null）。</td>
+                <td data-h="类型">实战 / 解析</td>
+              </tr>
+              <tr>
+                <td data-h="题目">Spreadsheet / Excel 公式求值</td>
+                <td data-h="描述">单元格互相引用（<code>=A1+B2</code>），按依赖顺序求值，<b>检测循环引用</b>。</td>
+                <td data-h="类型">披着产品外衣的图问题</td>
+              </tr>
+              <tr>
+                <td data-h="题目">KV 存储题族</td>
+                <td data-h="描述">(i) 序列化/反序列化 KV，键值可含任意字符（含分隔符）→ 长度前缀编码（Redis 协议式）；(ii) <b>版本化 / 时间旅行 KV</b>：<code>put(k,v)</code>、<code>get(k)</code>、<code>get(k, timestamp)</code>；(iii) LRU cache 的 get/put + 淘汰（唯一反复出现的经典 LeetCode 式题目）。</td>
+                <td data-h="类型">数据结构</td>
+              </tr>
+              <tr>
+                <td data-h="题目">并发 Web 爬虫</td>
+                <td data-h="描述">从种子 URL 多线程抓取，URL 去重，处理失败，限流。</td>
+                <td data-h="类型">并发</td>
+              </tr>
+              <tr>
+                <td data-h="题目">GPU credit / 账单计算与账本</td>
+                <td data-h="描述">给定 GPU 使用数据 + 计价规则，算剩余额度；2026 年 10 月变体：<b>乱序事件的 GPU credit 账本</b>，不同 credit 有不同的过期/使用规则。</td>
+                <td data-h="类型">实战 / 有状态</td>
+              </tr>
+              <tr>
+                <td data-h="题目">Scheduler（调度器）</td>
+                <td data-h="描述">写一个小的 scheduler 类，面试官不断加需求，直到它「变成另一道题」（Glassdoor 2026 年 10 月）。另有报告：用 Python 设计任务调度器（Aced/Exponent 候选人报告，2026 年 4 月）。</td>
+                <td data-h="类型">实战</td>
+              </tr>
+              <tr>
+                <td data-h="题目">其他（IGotAnOffer 汇总的 Glassdoor/Blind 列表）</td>
+                <td data-h="描述">外星字典字符序；岛屿数量；拓扑排序 + 环检测；依赖版本约束检查器；简单 ORM 层（save/query/update/delete）；data-loader 类 + 为它写测试；修复竞态条件并论证同步原语的选择；根据给定的 CSS + 数据 API 实现 UI mockup（全栈流程）。</td>
+                <td data-h="类型">混合</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="src-note">来源：<a href="https://www.hellointerview.com/blog/openai-coding-questions" target="_blank" rel="noopener">Hello Interview</a> · <a href="https://igotanoffer.com/en/advice/openai-software-engineer-interview" target="_blank" rel="noopener">IGotAnOffer §3.1</a> · <a href="https://www.linkjob.ai/interview-questions/openai-coding-interview/" target="_blank" rel="noopener">Linkjob（resumable iterator 与 cd 的逐部分拆解）</a></p>
+
+        <div class="callout warn">
+          <p><b>关于网上那些「通用题单」：</b>某些站点（如 codinginterview.com）把 Two Sum、Valid Parentheses、Top-K Frequent、Kth Largest 列为「OpenAI 题目」——这些看起来是通用 LeetCode 填充内容，<b>未被基于候选人报告的来源证实</b>，而后者一致地给出相反结论。不要把备考重心放在它们上面。</p>
+        </div>
+
+        <h4>2026 年 9–10 月最高频（Land the Lab 统计，编码题 n=84；前 12 名中 10 题自 9 月 1 日以来被重复问到）</h4>
+        <p><b>通用 SWE 梯队：</b></p>
+        <ul>
+          <li>内存分配器（<code>malloc</code>/<code>free</code> + 碎片合并 coalescing）</li>
+          <li>网格上的阈值感染传播（threshold infection spread）</li>
+          <li>带时间点快照的社交关注图（social follow graph with point-in-time snapshots）</li>
+          <li>玩具语言的类型推断（泛型 + 元组）</li>
+          <li>用消息传递计数/映射集群树（cluster tree）</li>
+          <li>回合制怪物组队对战模拟器</li>
+          <li>带前缀平衡模型的数据标注调度器</li>
+        </ul>
+        <p><b>下一梯队：</b>带租约与重试的<b>容错工作队列</b>；带二进制快照的持久化 KV 存储；带命令机器人的可扩展聊天应用；三张牌对决（three-card showdown）；<b>支持反向 + CIDR 的 IPv4 区间迭代器</b>；从 logits 计算熵（先数值稳定版，再流式版）。其中 ML 风味的题目见下方 ML 一节。</p>
+        <p class="src-note">来源：<a href="https://medium.com/@landthelab/the-12-coding-questions-openai-keeps-asking-its-screen-bans-autocomplete-ce9011f08817" target="_blank" rel="noopener">Land the Lab（Medium，2026 年 10 月）</a>——单一综合来源，但方法论明确（144 道题，最近问到日期截至 2026-10-16）；排名按方向性参考，题目描述按报告原文。</p>
+
+        <h4>重构 / 调试题（资深流程）<span class="chip ok">已确认</span></h4>
+        <ul>
+          <li>给一段有问题的现成代码，在时间压力下重构并修好。候选人警告：光读代码就烧掉 15 分钟很容易——尽早形成假设（theory）。</li>
+          <li>报告实例：一个 O(n²) 的日志文件解析器——debug 它、优化复杂度、在不改变行为的前提下重构得更清晰，并说明你会如何测试这些改动（IGotAnOffer）。</li>
+          <li>全栈变体：onsite 编码轮<em>本身就是</em>重构练习（把混乱代码提升抽象层次），而不是算法题（DesignGurus 全栈指南）。</li>
+          <li><span class="chip one">单一来源</span> 部分 infra 流程另加一场 75 分钟的并发系统编码轮（Land the Lab）。</li>
+        </ul>
+        <blockquote>
+          <p>Hello Interview 综合多位候选人：OpenAI「不会因为你其他轮全优就放过编码 2/4 或低 3/4 的人」。编码无法被设计/行为面的强势弥补。</p>
+        </blockquote>
+
+        <h3>系统设计题</h3>
+        <p><b>形式：</b>45–60 分钟，Excalidraw，虚拟进行。常有<em>两次</em>设计接触：screen 考具体的 API + 存储 schema；onsite 考快速增长下的规模化、重试/幂等、生产正确性。资深预期：主导全程，讨论分片/一致性/限流、横切关注点（运维负担、安全、隐私）、自建 vs 采购、瓶颈细到 OS 层。2026 年 10 月统计：<b>50 道设计题中 31 道是经典系统设计</b>——不要只盯着 AI 题。</p>
+        <div class="prompt-grid">
+          <div class="pg">
+            <h5>经典 / 产品型</h5>
+            <ul>
+              <li>Design Slack</li>
+              <li>Design TikTok</li>
+              <li>Design Yelp / 通知服务</li>
+              <li>在线国际象棋对弈</li>
+              <li>支付系统</li>
+              <li>沙箱化云 IDE</li>
+              <li>协作文档编辑</li>
+              <li>大规模搜索</li>
+              <li>实时分析管道</li>
+            </ul>
+          </div>
+          <div class="pg">
+            <h5>平台 / 基础设施</h5>
+            <ul>
+              <li>从零设计 GitHub Actions</li>
+              <li>Webhook 投递系统（投递、缓存、schema、重试/失败处理）</li>
+              <li>内存数据库的 API</li>
+              <li><b>公共 API 的限流器</b></li>
+              <li>10M req/s 的容错 Web 爬虫服务</li>
+              <li>devbox / CI-CD 系统</li>
+              <li>分布式电网控制系统（2026 年 10 月列表）</li>
+            </ul>
+          </div>
+          <div class="pg">
+            <h5>AI 原生</h5>
+            <ul>
+              <li>服务 ChatGPT / 在数亿周活下设计 ChatGPT（可能被告知把模型服务当黑盒）</li>
+              <li><b>LLM 企业搜索</b>（内部文档自然语言查询、RBAC、embedding + 全文、排序——IGotAnOffer 的完整范例）</li>
+              <li><b>GPU 调度系统</b>（在竞争性负载间分配算力）</li>
+              <li><b>向量数据库</b>（数十亿 embedding）</li>
+              <li>ChatGPT 输出的实时 NSFW 内容检测（模型选择、延迟、反馈回路）</li>
+              <li>稀缺 GPU 池上的 AI 视频生成服务 / 文生视频系统</li>
+              <li>可扩展的 LLM 训练系统（算力 + 数据约束）</li>
+              <li>AI 聊天机器人</li>
+            </ul>
+          </div>
+        </div>
+        <p class="sub"><b>资深（约 L5）深度预期：</b>容量估算、具体形态的 API + schema、读写数据流、失败模式，以及相关的 LLM 推理：流式（SSE vs WebSocket、首 token 延迟）、动态/连续批处理、KV cache、token 吞吐 vs p95 延迟的权衡、准入控制/负载卸载（429 + Retry-After、公平队列、先丢低优先级）——最后一组来自 Educative 的 OpenAI 设计 FAQ（备考站点框架，非逐字候选人报告）。</p>
+        <p class="src-note">来源：<a href="https://igotanoffer.com/en/advice/openai-system-design-interview" target="_blank" rel="noopener">IGotAnOffer 系统设计指南</a>（2026 年 9 月更新）· <a href="https://igotanoffer.com/en/advice/generative-ai-system-design-interview" target="_blank" rel="noopener">IGotAnOffer 生成式 AI 设计指南</a> · <a href="https://www.educative.io/courses/openai-system-design-interview-questions" target="_blank" rel="noopener">Educative</a></p>
+
+        <h3>ML / AI 专项</h3>
+        <p><b>通用 SWE MTS</b> <span class="chip ok">已确认</span>：不要求你推导 transformer。但要求你能推理模型驱动的系统：LLM API、流式、token 计数/预算、限流、批处理、概念级 KV cache、GPU 负载权衡、把 evals 与安全层当作系统组件。「非 ML 岗位也用得上」。一位拿到 offer 的 Glassdoor 候选人说，真正帮到他的是用 OpenAI API 做了 1–2 个带测试的小东西，而不是刷 LeetCode。</p>
+        <p><b>ML 方向 MTS / Research Engineer</b>：从零写 ML 代码是真的（2026 年 10 月最高频 12 道编码题中有 4 道是 ML 编码，尽管 ML 编码在 84 道里只占 8 道）：</p>
+        <ul>
+          <li>找出一个小型 <b>Transformer 训练脚本</b>里被埋的 bug（onsite 编码，最近报告 2026-10-02）</li>
+          <li>找出有噪声的标注员，剔除后重训分类器</li>
+          <li>带 autograd 的矩阵乘积扫描 + 手写反向传播</li>
+          <li>把向量化最近邻分类器实现为一个线性层</li>
+          <li>找出并修复一个约 300 行 transformer 实现里的 bug，<b>然后加上 KV caching</b>（DesignGurus）</li>
+          <li>在一个会丢消息的通信信道上实现 <code>all_gather</code></li>
+          <li>解释 layer norm 为何提升训练稳定性；transformer 如何学到长程依赖</li>
+          <li>推导一个概率函数的期望迭代次数</li>
+          <li>ML 岗有 Colab notebook screen（关补全）：手写 PyTorch/NumPy——broadcasting、不查资料写反向传播</li>
+        </ul>
+        <details>
+          <summary>推理基础设施深度（infra MTS 背景知识）</summary>
+          <div class="inner">
+            <p>prefill（计算受限）vs decode（显存受限）、paged attention、speculative decoding、量化权衡（FP8 / INT8 / INT4）、张量并行 vs 流水线并行、由 GPU 数量估算最大吞吐。来源：<a href="https://www.techinterview.org/post/3233475331/ai-inference-infrastructure-interview-prep-2026-vllm-triton/" target="_blank" rel="noopener">TechInterview 2026 推理备考综合</a>——这是通用 2026 推理备考材料，<b>不是</b> OpenAI 专属报告题单，仅作背景。</p>
+          </div>
+        </details>
+
+        <h3>行为面 / 文化 / 价值观</h3>
+        <p><span class="chip ok">已确认</span> 报告过的题目：</p>
+        <ul>
+          <li>「Why OpenAI?」——会被问多次，包括「Why this lab, and not another one?」（HM 轮：「Why OpenAI over the other labs?」）</li>
+          <li>「如果被要求在没有安全测试的情况下上线，你会怎么做？」（Land the Lab，2026 年 10 月——报告为 HM/行为面题目）</li>
+          <li>Recruiter 阶段的 AGI/安全观；「你对 AI 走向的看法，我们将如何使用它？」「你认为 AI 会在哪里出错、被滥用？」「使命的哪一点吸引你，它与你的工作如何连接？」</li>
+          <li>「你如何看待 AGI 的社会影响？」「你对开放研究与商业化之间平衡的看法？」（后两题来自一篇候选人经历帖，dev.to——<span class="chip one">单一来源</span>）</li>
+          <li>「你如何在速度与安全约束间平衡？什么情况下你会在高管压力下推迟上线？」（经 Aced PM 指南报告——PM 风味，主题相同）</li>
+          <li>标准题但追问很硬：介绍自己；最自豪的项目/成就；走一遍你主导过的大型技术项目；一个特别复杂的技术问题及你的解法；一次艰难的技术权衡；无职权影响决策；一次犯错；冲突的优先级管理；与跨职能伙伴的分歧；与 manager 的分歧；与利益相关方沟通困难</li>
+        </ul>
+        <p class="sub"><b>评分点（IGotAnOffer）：</b>建设性地处理分歧、成长心态/对反馈的行动力、对模糊性的适应、优先级变化下的韧性、跨技术深度的清晰沟通。InterviewQuery 补充：使命契合度本身是评分项。</p>
+        <p class="sub"><b>2026 年教练内容引用的价值观框架</b>（中等可信度——OpenAI 不公布单一领导力原则量表）：Values——<em>Humanity first; Act with humility; Feel the AGI; Ship joy.</em> Operating principles——<em>Find a way; Creativity over control; Update quickly; Intense focus.</em>（来源：<a href="https://supacv.com/blog/interview-playbook/openai" target="_blank" rel="noopener">SupaCV</a>。注意：OpenAI 公开的 Charter/原则措辞历经修订；回答应锚定使命——「ensure AGI benefits all of humanity」——和你自己的推理，而不是背清单。）</p>
+        <p class="sub"><b>项目展示的追问：</b>这是你端到端做的吗？跑了多久？技术挑战及处理方式？你和谁协作？你学到了什么/会怎么做不同？外加 2026 年 10 月的新追问：你<em>个人</em> own 了什么、为什么选 X 不选替代方案、10 倍规模时会怎样。</p>
+
+        <h3>Take-home / 实战练习</h3>
+        <p><span class="chip ok">已确认</span> <b>因团队而异，并非标配。</b>有些团队用 take-home <em>替代或叠加</em>现场 screen；很多流程根本没有。</p>
+        <div class="card">
+          <h4 style="margin-top:0">Webhook 投递服务（Hello Interview，一位平台 SWE 候选人——找到的最具体的 take-home 报告）</h4>
+          <p>注册 endpoint、接收事件、失败重试（带退避）、永久失败进死信队列、投递状态 API。48 小时提交窗口、约 6 小时工作量，Python/FastAPI/SQLite，经私有 GitHub 仓库提交；说明明确要求<b>干净代码 + 测试优先于做完全部功能</b>。</p>
+          <p><b>现场追问环节：</b>为你的选型辩护（为什么 SQLite？上生产要改什么？），然后现场加上 HMAC 签名验证 + 事件类型过滤；面试官还亮出一个 worker 崩溃导致投递「卡在 in-progress」的 bug 让你们一起 debug。Take-home 本身若说明允许可用 AI 工具——但这个许可<b>不延续</b>到现场评审：写下的每一行你都必须能解释和修改。</p>
+          <p class="src-note">来源：<a href="https://www.hellointerview.com/guides/openai/l4" target="_blank" rel="noopener">Hello Interview — OpenAI L4 指南</a></p>
+        </div>
+        <ul>
+          <li>通用形态（IGotAnOffer）：经 HackerRank 的自包含工程问题——设计/实现一个小系统或重构代码，后续轮次深挖；其他指南称预期投入 4–8 小时。</li>
+          <li>数据科学岗有约 48 小时的 A/B 测试 slide deck + 1 小时评审——那<b>不是</b> SWE track，不要混淆。</li>
+          <li>调试练习：上文的重构轮就是资深流程里的实战练习；另有报告称 OpenAI 有独立的调试 phone screen（后端：数据解析 bug、并行执行的竞态、N+1 查询）——来自一篇资深/Staff 产品工程候选人文章（Medium，2026 年 10 月，<span class="chip one">单一来源</span>）。</li>
+        </ul>
+
+        <h3>OpenAI 的淘汰原因</h3>
+        <ul>
+          <li>编码挂掉不可挽回（见上方引文）；需要多次实质性提示 = 即使做出解法也判 fail（IGotAnOffer）。</li>
+          <li>「NeetCode 对这个流程基本没用」（一位拿到 offer 的 Glassdoor 候选人）——只刷 LeetCode 是最常见的备考错位。</li>
+          <li>重构轮：读太久而不形成假设。</li>
+          <li>项目展示：ownership / 权衡 / 规模讲得太浅。</li>
+          <li>安全/AGI 回答弱或套话——可能在 <em>recruiter 电话</em>就结束流程。</li>
+          <li><b>强信号：</b>从第一个部分起就是带测试的生产质量代码（让后续扩展便宜）、独立解题、DDIA 级别的分布式系统深度、以及一个具体、有推理的「Why OpenAI」。</li>
+        </ul>
+      </section>
+
+      <!-- ============ ANTHROPIC ============ -->
+      <section id="anthropic">
+        <h2>Anthropic <span class="tag ant">PART II</span></h2>
+        <p class="sub">核心特征：题库小而出名，所以面试官会在轮次中途<em>改题</em>（perturb）来测你是否真会做而不是背过。过度设计是被点名的失败模式——价值观「Do the simple thing that works」在编码轮里是被字面执行的。而真正的头号杀手是独立的文化/价值观轮。</p>
+
+        <h3>完整流程</h3>
+        <span class="chip ok">已确认</span>
+        <ol class="loop ant">
+          <li>
+            <div class="step-title">申请 — 含书面「Why Anthropic?」</div>
+            <div class="step-body"><p>许多岗位的申请里就有一道书面题（强回答约 200–400 词，被高度重视——ChillInterview 基于当前在招岗位的指南）。注意顺序：CodeSignal 可能在 recruiter 电话<em>之前</em>就发来。</p></div>
+          </li>
+          <li>
+            <div class="step-title">Recruiter 筛选 — 15–30 分钟</div>
+            <div class="step-body"><p>背景、动机、岗位契合。<b>从第一分钟就带使命/价值观色彩</b>（FrontierLoop 综合 60+ 份报告）——「前沿 AI 很 exciting」式的泛泛回答在这一关就会被过滤。题目：介绍自己；为什么偏偏是 Anthropic？为什么这个岗位？过一遍简历；3–5 年职业目标。</p></div>
+          </li>
+          <li>
+            <div class="step-title">在线测评 — CodeSignal，90 分钟（第一道技术过滤）</div>
+            <div class="step-body"><p>一个项目、<b>4 个递进关卡</b>（有候选人报告 6 部分变体——以你的邀请为准）。必须通过当前关卡的测试才能解锁下一关，每关都是在<em>同一份代码</em>上扩展。题族与评分冲突见下文。据 FrontierLoop，referral/资深候选人常被豁免——<span class="chip one">单一综合来源</span>，官方未证实。</p></div>
+          </li>
+          <li>
+            <div class="step-title">现场技术 screen — 约 55–60 分钟</div>
+            <div class="step-body"><p>与工程师在 CodeSignal/Colab（有人报告 Replit）+ Google Meet 中实战实现。基础题约占 ⅓ 时间，其余是规模、IO-bound vs CPU-bound、并行化的追问。可查文档/搜索；不可用 AI（见政策一节）。</p></div>
+          </li>
+          <li>
+            <div class="step-title">Hiring Manager 筛选 — 约 60 分钟</div>
+            <div class="step-body"><p>深挖你的背景：走一遍职业经历，然后逐项目追问——为什么那个决策？权衡？会怎么做不同？你怎么知道它有效？同时看团队契合与早期文化信号。非 ML 背景：大方承认，讲清转型故事（IGotAnOffer）。</p></div>
+          </li>
+          <li>
+            <div class="step-title">虚拟 onsite — 分<b>两天</b>进行（显著特征），通常 4–5 轮 × 约 55 分钟</div>
+            <div class="step-body">
+              <ul>
+                <li><em>Loop 1：</em>编码 + 系统设计。<b>Loop 1 挂了，Loop 2 直接取消</b>（Miami/InterviewQuery 汇总；Land the Lab 亦认同：「第一天 onsite 表现弱，第二天会被取消」）。</li>
+                <li><em>Loop 2：</em>HM 对话（若还没做）、<b>项目深挖</b>（约 20 分钟展示一个你端到端 own 的项目——候选人报告用 Notion——然后约 40 分钟追问决策、跨团队协调、权衡）、部分流程有第二场编码，以及<b>文化/价值观面</b>（见下文）。</li>
+                <li>部分流程在技术 loop 里包含 <b>LLM 与提示工程轮</b>（见 ML 一节）——IGotAnOffer 把它列为标准技术轮，其他指南认为是团队相关。问 recruiter。</li>
+              </ul>
+            </div>
+          </li>
+          <li>
+            <div class="step-title">背调 + 团队匹配 — 并行进行，2–4 周以上，有时 6–8 周</div>
+            <div class="step-body"><p>背调在周期<em>进行中</em>就查，有时甚至在终轮期间（InterviewQuery 候选人报告：三位推荐人在不同时点被联系，包括终轮进行时）。宽口径岗位是先对着一个通用 bar 面试，再按你的兴趣/经验 + 组织需求匹配团队（Claude.ai、API、企业版、agents、平台、infra）。<b>候选人可能在通过全部轮次后，因没有坑位在匹配阶段被拒</b>（Implicator / interviewing.io 报道）。任何阶段被拒都不给反馈；12 个月后可重新申请（或有实质变化时更早）。</p></div>
+          </li>
+          <li>
+            <div class="step-title">Offer 与谈判</div>
+            <div class="step-body"><p>谈判是<em>被预期</em>的（FrontierLoop）——这与一个源自 Jobright/Blind 的「Anthropic 不谈判」说法<span class="chip conflict">来源冲突</span>；较新的综合来源说可以谈。可执行结论：不要假设第一份 offer 是最终版，也不要过早透露当前薪酬/手头 offer。</p></div>
+          </li>
+        </ol>
+        <p class="sub"><b>时间线（诚实的冲突区间）：</b>IGotAnOffer 称 4 周到 3 个月以上（Glassdoor）；其他指南称快时 3–4 周全程走完；Land the Lab 数出 8 个接触点。差异主要来自团队匹配。</p>
+        <p class="sub"><b>工具/形式事实（官方职业指引转引）：</b>全部面试走 Google Meet；现场编码在 CodeSignal / Google Colab；系统设计常<b>打字写进共享 Google Doc</b>，而不是画图（Land the Lab：设计评分看 API、数据模型、请求流、处理给定负载、≥1 个失败场景——全用文字）。默认 Python。</p>
+
+        <div class="callout ant">
+          <p><b>2025–2026 的变化</b></p>
+          <p>· <b>AI 使用政策在 2025 年中反转并明确化</b>（Fortune，2025-07-21）：申请材料——先自己写初稿，<em>然后</em>可以用 Claude 润色；备考——明确鼓励用 Claude；take-home——除非说明，否则不用 Claude；现场面试——除非面试官说可以，否则不用 AI。详见下文政策一节。<br>
+          · <span class="chip one">单一来源 / 新兴</span> 部分 2026 流程新增一轮<b>用 Claude Code 写代码并做 code review</b>——那一轮预期使用 AI（Land the Lab）；其余 4 个技术轮默认仍禁 AI。<br>
+          · 申请阶段检测：据 IGotAnOffer，Anthropic 会用 LLM 检测 CodeSignal 代码是否「为通过测试而工程化，而非真正解决问题」——写真实、通用的代码，不要写 test-shaped 的 hack。</p>
+        </div>
+
+        <h3>编码题：CodeSignal OA 题族（90 分钟，4 关）</h3>
+        <span class="chip ok">已确认</span>
+        <ol>
+          <li><b>内存数据库——报告频率最高。</b>详细候选人记录（Linkjob，2026）：记录以字符串 key 索引，每条记录是 field→value 的字符串对。第 1 关：<code>SET &lt;key&gt; &lt;field&gt; &lt;value&gt;</code>、<code>GET</code>、<code>DELETE</code>（含删字段）。后续关卡（综合各指南）：按 field/value 前缀过滤的 <b>SCAN</b>、带时间戳的 <b>TTL</b> 过期、备份/恢复与持久化、压缩。<br>
+          现场轮变体（LeetCodeWizard）：「实现一个内存 KV 存储。从 SET、GET、DELETE 开始。现在加按值前缀的过滤扫描。现在加 TTL 过期时间戳。」<br>
+          <span class="src-note">完整记录：<a href="https://www.linkjob.ai/interview-questions/anthropic-software-engineer-interview/" target="_blank" rel="noopener">Linkjob</a></span></li>
+          <li><b>银行系统</b>——开户 + 余额查询 → 转账 → 带过滤的交易历史 / 消费排名 → 利息与时间相关逻辑、返现、账户合并；边界：负余额、退款、超时。</li>
+          <li><b>文件系统模拟器</b>——创建/读取 → 权限模型 → 符号链接、挂载；循环引用与权限继承的边界。</li>
+          <li><b>其他跨指南确认的题族：</b>包管理器（安装 → 依赖解析 → 版本约束 → 冲突解决）；构建系统（任务调度 → DAG 执行 → 缓存 → 并行）；文本编辑器（插入/删除 → 撤销/重做 → rope/协作）；受限文件缓存；带事务一致性的云数据库模拟；员工工时跟踪 / 带时间范围查询的任务调度。</li>
+        </ol>
+        <p class="src-note">来源：<a href="https://www.sundeepteki.org/advice/anthropic-codesignal-assessment-guide" target="_blank" rel="noopener">Sundeep Teki 指南</a> · <a href="https://fonzi.ai/blog/anthropic-codesignal" target="_blank" rel="noopener">Fonzi</a></p>
+
+        <div class="callout warn">
+          <p><b>及格分数——<span class="chip conflict">来源冲突</span>，不要信任何单一门槛：</b></p>
+          <p>· Sundeep Teki 指南：满分 600，<b>520+ 通常晋级</b>（≈ 4 关中 3 关全绿）。<br>
+          · FinalRoundAI FAQ：<b>800+/850 稳定晋级</b>，750–799 边缘（量表不同——可能是不同年份/版本的 CodeSignal 框架）。<br>
+          · IGotAnOffer：有 <b>590–600（近满分）的候选人报告未晋级</b>——分数是必要非充分条件，与简历/经验/背调一起权衡；Hello Interview 亦认同：有人不满分晋级，也有人满分被拒。</p>
+          <p><b>可执行结论：</b>目标是快速干净地做完第 1–3 关（每关预算约 20–25 分钟），第 4 关做出实质进展；第 1 关就要<em>为扩展而建</em>——这个测评考的明确是「我实现/重构代码有多快」（候选人原话，Hello Interview）。Glassdoor 2026 年 4 月：「不是 LeetCode，而是按 spec 快速写代码、随每关增加约束快速重构。」</p>
+        </div>
+
+        <h3>编码题：现场 / onsite 已知题族</h3>
+        <p><b>报告最多的 Top 5，每题在 2026 年 9 月 18 日 – 10 月 13 日间被重复问到</b>（Land the Lab，已知轮次题目 n=63；编码是报告最多的轮次，占 19/63）：</p>
+        <ul class="hot">
+          <li><div class="rank">1</div><div><span class="q">修复一个函数缓存的 key 函数，然后让它可持久化</span><div class="d">Fix a function-cache key function, then make it durable</div></div><span class="when">最近：10-13</span></li>
+          <li><div class="rank">2</div><div><span class="q">并发同域名 Web 爬虫</span><div class="d">Concurrent same-host web crawler</div></div><span class="when">最近：10-05</span></li>
+          <li><div class="rank">3</div><div><span class="q">带墙钟预算的图片变换管道</span><div class="d">按 JSON 描述对图像数据施加变换</div></div><span class="when">最近：10-05</span></li>
+          <li><div class="rank">4</div><div><span class="q">文件去重：先按大小，再按内容哈希</span><div class="d">Deduplicate files by size, then content hash</div></div><span class="when">最近：09-18</span></li>
+          <li><div class="rank">5</div><div><span class="q">从 enter/exit 追踪重建调用栈</span><div class="d">采样 profiler 问题（sampling profiler）</div></div><span class="when">最近：09-18</span></li>
+        </ul>
+        <p><b>下一梯队：</b>带转账/返现/合并的银行系统；<b>跨 worker 分片的分布式众数/中位数</b>；<b>贪心最长匹配 tokenizer</b>。</p>
+        <p class="src-note">来源：<a href="https://medium.com/@landthelab/the-5-coding-questions-anthropic-keeps-asking-and-the-round-most-people-fail-562d414e4173" target="_blank" rel="noopener">Land the Lab（Medium / dev.to，2026 年 10 月）</a></p>
+
+        <h4>其他报告过的现场题（多份指南）</h4>
+        <ul>
+          <li><b>采样 profiler / 调用栈：</b>写一个函数，从 stack-trace 采样中判定<b>运行时间最长的函数</b>（Miami 汇总；ChillInterview：「解析周期性栈采样，重建运行最久的函数」）</li>
+          <li>Web 爬虫：先写同步版，再改异步/并发、有界、去重、处理失败（LeetCode 1242 Web Crawler Multithreaded 是被引用的练习类比题）</li>
+          <li>解析一个 URL 列表并统计某域名的匹配数（+ 异步设计与扩展追问）（IGotAnOffer）</li>
+          <li>序列化/反序列化字符串列表；文本两端对齐（justify）；LRU cache +「现在让它可持久化」；解释器式模拟 / 检测无限循环的指令解析；流式消息排序；多阶段数据变更任务（DataFord/ChillInterview 汇总）</li>
+          <li>把一个 token 生成函数扩展到 100,000 req/s——与设计题的边界模糊（IGotAnOffer 将其列在现场编码下）</li>
+        </ul>
+        <div class="callout ant">
+          <p><b>改题警告（已确认的主题）：</b>题库小且众所周知，所以面试官会在轮次<em>中途改题</em>来测你能不能真正操作、而非回忆。知道题族只是入场券，扛住变体才是测试本身。另外，现场轮极看重沟通：FinalRoundAI 指出，沉默超过 90 秒，许多面试官会读作沟通失败——把决策和走过的死路都讲出来。</p>
+        </div>
+
+        <h3>系统设计题</h3>
+        <p><b>形式</b> <span class="chip ok">已确认</span>：约 55 分钟；常在<b>共享 Google Doc</b> 里进行（用文字写 API/数据模型/失败场景）。报告的 29 道设计题中 <b>21 道是 AI 系统/ML</b>（Land the Lab）。两个 Anthropic 特色：</p>
+        <ol>
+          <li><b>先算账：</b>尽早做容量/GPU/带宽的数学估算并让它驱动设计；然后保持<em>简单</em>——过度设计是报告最多的设计失败（FrontierLoop，多来源原话一致）。</li>
+          <li><b>面试官主导节奏</b>（<span class="chip one">单一指南但很详细</span>——Coditioning）：面试官可能给话题限时、在数据模型 → 失败模式 → 一致性之间跳来跳去并主导顺序。僵硬的顺序框架会崩；模块化思考，用微复盘（「给定 X，我选 Y 因为 Z；代价 W 被接受因为……」），并明确点出还没覆盖的地带。</li>
+          <li><b>安全/运维是一等评分项：</b>滥用防范 + 限流的落点、什么记日志 vs 什么为隐私脱敏、误用/对抗性使用、事故响应 + 回滚——权重高于一般大厂（Coditioning 量表综合）。</li>
+        </ol>
+        <h4>报告过的题目</h4>
+        <ul>
+          <li><b>设计推理批处理系统——标志性题目（2026 年报告频率最高）。</b>单块 GPU、每批最多 100 个输入，用户同步提交并等待；设计 intake → 批处理 → GPU 执行 → 把每个响应送回正确的用户。追问：扩展到 GPU 集群（路由/负载均衡、容量跟踪、GPU 在批处理中途挂掉的故障转移）。预期深度：连续批处理、KV-cache 显存、prefill vs decode、GPU 数量估算、新 GPU 预热期间如何保护服务。来源：<a href="https://www.designgurus.io/answers/detail/what-to-expect-in-the-anthropic-system-design-interview" target="_blank" rel="noopener">DesignGurus</a> · <a href="https://www.theforwarddeployed.io/interviews/anthropic/questions" target="_blank" rel="noopener">TheForwardDeployed</a> · <a href="https://aitechconnect.in/tips/design-inference-batching-system-interview-answer-2026" target="_blank" rel="noopener">AITechConnect（2026 年 9 月，经多份指南归因于 Anthropic）</a></li>
+          <li><b>批量 LLM 推理 API / LLM 推理服务平台</b>（上题的通用形态）</li>
+          <li><b>设计 100,000 req/s 的 token 生成服务</b>——吞吐数学、水平扩展、路由、真正的瓶颈</li>
+          <li><b>设计 Claude 的聊天服务</b>（2024 年 3 月报告，现行指南仍收录）——消息历史、流式响应、会话管理；变体：设计一个让 LLM 在单条会话线程里处理多个问题的系统；1 对 1 聊天深挖变体（离线投递、用序列号保序、用一致性哈希扩展 WebSocket——Jobright/1point3acres/Blind 综合）</li>
+          <li><b>设计分布式搜索系统——10 亿文档、100 万 QPS，含约 10K req/s 的 LLM 推理组件</b>（2025 年 9 月）——分片、副本、缓存、热点</li>
+          <li><b>设计混合搜索系统</b>——文本检索 + 语义相似度，1000 万文档 top-k &lt;50 ms（2025 年 9 月）</li>
+          <li><b>数据索引管道 / 约 10 亿文档的并发 Web 爬虫</b>——robots.txt、限流、循环引用（2025 年 9 月）</li>
+          <li><b>性能调试场景</b>——p95 延迟从 100 ms 飙到 2000 ms：建监控来发现它，给优化排优先级（2025 年 9 月）</li>
+          <li><b>设计分布式 AI 模型下载器 / 把模型 checkpoint 分发到集群</b>（+ 带带宽约束地向数千台机器分发大文件；文件缓存系统）</li>
+          <li><b>设计 AI prompt playground</b>；带敏感度分级的数据平台；（研究 track）ML 配置系统——短而灵活的配置 vs 严格类型校验</li>
+          <li><b>设计带安全层的 LLM API</b>——请求路径中的 Constitutional-AI 式原则、批处理 vs 实时权衡、不停机更新安全层（Jobright 综合）</li>
+          <li><b>用 credit 的 GPU 调度系统</b>——抢占（高优先级能否打断低优先级？）、防止垄断、节点故障；周期性 credit 分配 vs 动态市场（Jobright，引 Glassdoor 报告）</li>
+          <li><b>GenAI 框架题：</b>「你会如何设计一个语言模型，使其在保持有用和表达力的同时最小化有害输出？」（IGotAnOffer GenAI 指南，源自 Glassdoor/Reddit 报告）</li>
+        </ul>
+        <div class="callout ant">
+          <p><b>设计文档评审变体（重要，多份报告）：</b>「这是一个初级工程师为推理批处理系统写的设计——评审它，说你会改什么」；另一位候选人（Aced/Exponent，Staff/L6）被要求评审一份现成设计文档，然后深挖失败处理与过载保护。<b>练习<em>批判</em>设计，而不只是产出设计。</b></p>
+        </div>
+        <p class="src-note">来源：<a href="https://www.coditioning.com/blog/15/anthropic-system-design-interview-questions" target="_blank" rel="noopener">Coditioning</a> · <a href="https://igotanoffer.com/en/advice/anthropic-interview-process" target="_blank" rel="noopener">IGotAnOffer</a> · <a href="https://jobright.ai/blog/anthropic-technical-interview-questions-complete-guide-2026/" target="_blank" rel="noopener">Jobright</a></p>
+
+        <h3>ML / AI 专项</h3>
+        <p><b>Anthropic 明确不要求 SWE MTS 有 ML 背景：</b>其技术人员中约一半入职时没有 ML 经验（Anthropic 职业页面，几乎每份指南都引用）。门槛是 <em>AI 原生的工程判断力</em>，不是研究深度。</p>
+        <h4>LLM 与提示工程轮（许多 SWE 流程里有）</h4>
+        <p>IGotAnOffer 把它列为标准技术轮，在 Google Colab 里进行；面试官测你是否理解 LLM 如何工作、<em>在哪里会失败</em>、以及如何绕开这些限制来设计。报告过的任务：</p>
+        <ul>
+          <li>为具体用例设计有效的 prompt；推理一套<em>系统化</em>的提示工程方法</li>
+          <li>构建高效调用 LLM API 的系统——<b>token 管理、限流、成本模型</b></li>
+          <li>设计多个 LLM 调用相互协调的多步推理系统</li>
+          <li>（Applied-AI track，不同岗位但能说明风味：检索打分器、token 预算分配器、工具调用编排器——「做一个能跑的东西，并推理它的失败模式」）</li>
+        </ul>
+        <h4>通用 SWE 应能讨论的概念（由设计轮 + LLM 轮的深度推断，设计轮深度已确认）</h4>
+        <ul>
+          <li>Token 与上下文窗口预算（发送前计数、预留输出预算、长对话的摘要/钉选策略）</li>
+          <li>连续批处理；KV cache（存什么、为何 decode 是显存受限、显存随序列长度 × batch 的增长）</li>
+          <li>Prefill vs decode；用流式掩盖延迟</li>
+          <li>RAG 管道形态（切分、embedding、向量检索、混合检索、引用/溯源）以及<em>何时不用 RAG / 何时改微调</em></li>
+          <li>Evals（如何超越「肉眼看」来知道系统有效）；护栏（直接/间接 prompt 注入、PII 处理、输入/输出过滤、红队）</li>
+          <li>模型路由/降级与成本-延迟权衡</li>
+        </ul>
+        <details>
+          <summary>ML 方向 MTS / Research Engineer（对照，更深）</summary>
+          <div class="inner">
+            <ul>
+              <li>「解释 Transformer 的架构——关键组件及为何重要」</li>
+              <li>「你会如何为推理延迟优化一个模型？」（量化、蒸馏、硬件加速）</li>
+              <li>设计带容错的分布式训练管道</li>
+              <li>numpy 式数组操作，偶尔手算梯度</li>
+              <li>研究头脑风暴（「你会如何检测语言模型的幻觉？」/「设计一个实验，检测模型是在欺骗还是只是答错」）</li>
+              <li>研究展示 / 论文深挖</li>
+            </ul>
+            <p class="src-note">来源：<a href="https://jobright.ai/blog/anthropic-technical-interview-questions-complete-guide-2026/" target="_blank" rel="noopener">Jobright</a> · <a href="https://www.sundeepteki.org/advice/the-ultimate-ai-research-scientist-interview-guide-cracking-anthropic-openai-google-deepmind-top-ai-labs-in-2026" target="_blank" rel="noopener">Sundeep Teki 研究岗指南</a>（研究 track 指南，其 SWE 论述较薄，仅用于 ML track 对照）</p>
+          </div>
+        </details>
+
+        <h3>行为面 / 文化 / 价值观——Anthropic 的定义性轮次</h3>
+        <p><b>把它当技术轮来备考。</b>独立的文化/价值观面（约 60 分钟，有时两位面试官——一位提问、一位旁听；面试官可能<b>来自任何部门、非技术背景</b>，低分实际上就是一票否决）。Bloomberg Businessweek（2026 年 5 月）+ interviewing.io 创始人：据 Anthropic 的 recruiter，这是「大多数候选人挂掉的地方」；一位 recruiter 对某候选人直言，有人「技术面表现非常好，却因为行为面被拒」。候选人形容它「几乎像心理治疗」——追问你的<em>感受</em>，深挖好几层。<b>预制 STAR 故事是最常见的挂法</b>；脚本化回答和奉承都会反噬；被一个好论点说服、更新自己的立场，正是这一轮在测的行为。</p>
+        <p><span class="chip ok">已确认</span> 报告过的题目：</p>
+        <ul>
+          <li>「你持有哪些<b>不寻常的信念</b>，你如何在不舒服的场合为它们辩护？」——Daniela Amodei（联合创始人/总裁）在 2025 年一档播客中亲自描述的测试，Bloomberg 亦有印证。来源：<a href="https://www.beckershospitalreview.com/healthcare-information-technology/ai/what-it-takes-to-get-a-job-at-anthropic/" target="_blank" rel="noopener">Becker's / Bloomberg</a></li>
+          <li>「讲一次你与工作产生<b>道德冲突</b>的经历。你和谁谈了？他们说了什么<b>改变了你的想法</b>？」/ 变体：「讲一次你做了一件违背自己价值观的东西」</li>
+          <li>「你对 Anthropic 的使命或方向有什么<b>担忧 / 批评</b>？」——<em>不是陷阱；全盘同意才是弱答案。</em>一个具体、论证充分、无敌意的异议，得分高于附和。</li>
+          <li>「你如何在交付速度与安全/安保之间平衡？」</li>
+          <li>「讲一次你收到负面反馈的经历——你如何处理？」</li>
+          <li>「描述一次你与 manager 意见不合，<b>后来改变了想法</b>」</li>
+          <li>「在高风险环境中部署 agentic AI 系统有哪些伦理风险？」</li>
+          <li>「讲一次你做出安全优先的决策，即使意味着取舍」</li>
+          <li>「讲一次技术误判导致项目延期。你学到了什么？」</li>
+          <li>「描述一次你与同事的技术分歧。你如何解决？」</li>
+          <li>「如果你在项目中途意识到它其实不可行，你会怎么做？」</li>
+          <li>「讲一次你对一个不同意的技术方向提出反对」</li>
+          <li>全程预期<b>负面框架</b>的追问：你不喜欢的团队、你觉得受限的策略、难以接受的反馈（Miami 汇总）</li>
+          <li><span class="chip one">单一报告</span>（Blind，经 Hello Interview 转引）：被问是否愿意接受 <b>Anthropic 股价归零</b>以换取使命的推进——把取舍落到个人身上</li>
+          <li><b>每一位面试官、每一轮</b>，都会问某种版本的「Why Anthropic?」</li>
+        </ul>
+        <p class="sub"><b>HM 轮题目：</b>项目走查 + Why/权衡/会怎么做不同的追问；「你个人 own 了什么？」；一个 0→1 系统或大型迁移；你建过的技术上最难的系统。</p>
+        <p class="sub"><b>Anthropic 公开陈述的价值观（用自己的话准备）：</b>Act for the global good；Hold light and shade；Be good to our users；Ignite a race to the top on safety；<b>Do the simple thing that works</b>；Be helpful, honest, and harmless；Put the mission first。值得真读的一手材料：<em>Core Views on AI Safety</em>、<em>Responsible Scaling Policy</em>、Constitutional AI 论文、Dario Amodei 的文章（recruiter 可能在 onsite 前发安全阅读材料）。</p>
+
+        <h3>Take-home / 实战练习 与官方 AI 政策</h3>
+        <p><b>核心 SWE MTS 通常没有多日 take-home</b>——90 分钟 CodeSignal <em>就是</em>那个限时实战练习（不要混淆两者）。Take-home 出现在：</p>
+        <ul>
+          <li><b>Research Scientist / Research Engineer：</b>约 48 小时窗口的问题集/数据集，或约 5 小时限时项目（API 探索 / 模型评估）。评审看推理过程：一份展示「试了什么、什么失败了及原因、多给时间会做什么」的 write-up，胜过一份把这些藏起来的干净 write-up（FinalRoundAI 综合）。</li>
+          <li><b>Performance Engineer：</b>专门的 2 小时限时 take-home——优化一个核心 kernel（循环展开、显存合并、算子融合；GPU kernel 风格）。这一岗<em>允许</em> AI 工具；一位候选人报告做到约 8× 提升、需 &gt;600/1000 晋级（Jobright 引 1point3acres——<span class="chip one">单一来源细节</span>，数字谨慎看待）。</li>
+          <li><b>Applied AI Engineer（相邻岗位）：</b>3–4 小时延展现场搭建 / take-home——按一个虚构客户简报做一个小型 Claude 驱动的应用；按已交付行为、API 卫生、处理模糊性的能力评分（GetPerspective 综合）。</li>
+          <li><b>Code review 实战：</b>上文的设计文档评审，就是 SWE 流程里的评审练习。</li>
+        </ul>
+        <div class="card">
+          <h4 style="margin-top:0">官方 AI 使用政策（2025 年中更新）<span class="chip ok">已确认</span></h4>
+          <ul>
+            <li><b>申请材料：</b>先自己写初稿，<em>然后</em>可以用 Claude 润色。</li>
+            <li><b>备考：</b>明确鼓励用 Claude（「用 Claude 研究 Anthropic、练习你的回答、为我们准备问题」）。</li>
+            <li><b>Take-home：</b>「除非我们另行说明，不要用 Claude 完成。」</li>
+            <li><b>现场面试 / CodeSignal：</b><b>除非明确说明，不得使用 AI 协助</b>——包括 Claude、ChatGPT、代码生成和 AI 自动补全。技术面试中查普通文档/网页<em>是允许的</em>。</li>
+          </ul>
+          <p class="src-note">来源：<a href="https://www.metaintro.com/blog/inside-anthropic-brutal-hiring-process-bans-ai-interviews" target="_blank" rel="noopener">Metaintro（汇总 Fortune 2025-07-21 报道）</a> · <a href="https://www.hellointerview.com/guides/anthropic/swe" target="_blank" rel="noopener">Hello Interview</a></p>
+        </div>
+
+        <h3>Anthropic 的淘汰原因</h3>
+        <ul>
+          <li><b>文化轮是第一过滤器</b>——排在任何技术轮之前。</li>
+          <li><b>过度设计</b>（编码<em>和</em>设计轮）——违背「do the simple thing that works」。</li>
+          <li>现场轮<b>沉默写代码</b>；不讲述走过的死路。</li>
+          <li><b>泛泛的「Why Anthropic」</b>（「有意思的 AI 问题」「Claude 很 impressive」）——recruiter 主动过滤使命的具体性：引用 Responsible Scaling Policy、Constitutional AI、可解释性，并把它们连到<em>你的</em>系统经验（例如把 agent 安全当作软件架构问题：隔离、最小权限、可观测执行、爆炸半径限制）。</li>
+          <li><b>CodeSignal 有速度没扩展性</b>——第 1 关图快写出脆弱结构，到第 3 关必须重写；或者反过来，把前面关卡打磨到完美然后没时间了。</li>
+          <li><b>团队匹配停滞</b>——全部通过却没有坑位；保持其他流程在跑，清楚表达团队意向，提前备好推荐人。</li>
+          <li><b>强信号：</b>从简单开始 → 让它跑起来 → 吸收新约束 → 说出权衡 → 加固（ChillInterview 对反复出现的模式的总结）；先算账的简单设计；真诚、具体、<em>带怀疑</em>的价值观回答（包括对 Anthropic 的真实批评）。</li>
+        </ul>
+      </section>
+
+      <!-- ============ COMPARE ============ -->
+      <section id="compare">
+        <h2>逐项对比</h2>
+        <div class="tbl-wrap">
+          <table class="cmp">
+            <thead><tr><th>维度</th><th>OpenAI MTS SWE</th><th>Anthropic MTS SWE</th></tr></thead>
+            <tbody>
+              <tr><td data-h="维度">流程形态</td><td data-h="OpenAI">Recruiter → HM → 技能评估（编码<em>或</em>设计<em>或</em> take-home）→ 终轮 4–6 轮 / 1–2 天</td><td data-h="Anthropic">Recruiter → CodeSignal OA → 现场 screen → HM → <b>分两天</b>的 onsite（第二天以第一天过关为前提）→ 背调 + 团队匹配</td></tr>
+              <tr><td data-h="维度">去中心化程度</td><td data-h="OpenAI">高——几乎每份报告都说「因团队而异」</td><td data-h="Anthropic">中——轮次<em>组合</em>更标准（价值观轮是全员标配），顺序/形式因 org 而异</td></tr>
+              <tr><td data-h="维度">第一道技术过滤</td><td data-h="OpenAI">现场 CoderPad/HackerRank，60–90 分钟，一道题 3–5 个部分</td><td data-h="Anthropic">限时 CodeSignal，90 分钟，一个项目 4 个解锁式关卡</td></tr>
+              <tr><td data-h="维度">标志性编码题族</td><td data-h="OpenAI">可恢复迭代器、内存 SQL/LSM 存储、<code>cd</code>+符号链接、电子表格、版本化 KV、GPU credit 账本</td><td data-h="Anthropic">内存 DB（OA）、银行系统（OA）、爬虫、文件去重、调用栈 profiler、函数缓存持久化</td></tr>
+              <tr><td data-h="维度">重构 / 调试</td><td data-h="OpenAI"><b>独立成轮</b>，出现在资深 onsite 流程</td><td data-h="Anthropic">融入 build-and-extend 与设计文档评审</td></tr>
+              <tr><td data-h="维度">设计工具 / 风格</td><td data-h="OpenAI">Excalidraw；候选人主导；经典 + 产品题常见</td><td data-h="Anthropic">共享 Google Doc，文字叙述；面试官可能主导节奏；AI 基础设施题占主导</td></tr>
+              <tr><td data-h="维度">标志性设计题</td><td data-h="OpenAI">LLM 企业搜索；ChatGPT 服务；GPU 调度；向量数据库</td><td data-h="Anthropic"><b>GPU 上的推理批处理</b>；100K rps 的 token 服务；Claude 聊天；10 亿文档 / 100 万 QPS 的搜索</td></tr>
+              <tr><td data-h="维度">通用 SWE 的 ML 门槛</td><td data-h="OpenAI">概念级 LLM 系统素养；在 API 上动手做过东西</td><td data-h="Anthropic">同左 + 许多流程有一轮专门的 LLM/提示工程轮</td></tr>
+              <tr><td data-h="维度">ML MTS 的 ML 门槛</td><td data-h="OpenAI">从零 PyTorch：transformer 修 bug + KV cache、autograd、all_gather</td><td data-h="Anthropic">Transformer 讲解、推理优化、分布式训练设计；研究岗另加头脑风暴 + 展示</td></tr>
+              <tr><td data-h="维度">价值观考察</td><td data-h="OpenAI">织入各轮：recruiter 关卡 + HM/行为面；「没有安全测试就上线？」</td><td data-h="Anthropic"><b>独立的 60 分钟轮次，带否决权</b>；不寻常信念探针；预期你批评 Anthropic</td></tr>
+              <tr><td data-h="维度">Bar raiser 等价物</td><td data-h="OpenAI">无命名的 bar raiser 报告；hiring committee + 最后定级。编码分即硬门槛</td><td data-h="Anthropic">无命名的 bar raiser；<b>文化面面试官即 bar-raiser/否决者</b>，团队匹配是第二道后置关卡</td></tr>
+              <tr><td data-h="维度">项目深挖</td><td data-h="OpenAI">45 分钟展示，快速追问 ownership/规模</td><td data-h="Anthropic">约 20 分钟展示 + 约 40 分钟追问，常用 Notion</td></tr>
+              <tr><td data-h="维度">Take-home</td><td data-h="OpenAI">因团队而异；webhook 服务是最具体的报告实例；48 小时窗口</td><td data-h="Anthropic">SWE 罕见（用 CodeSignal 代替）；研究/性能/应用岗常见</td></tr>
+              <tr><td data-h="维度">AI 工具政策</td><td data-h="OpenAI">编码轮禁用 AI / 禁自动补全；可查文档；<em>部分</em>流程出现新兴的 agentic 轮</td><td data-h="Anthropic">按阶段明文规定（2025 年中）：备考可用、申请润色可用、take-home/现场除非说明不可用</td></tr>
+              <tr><td data-h="维度">时间线</td><td data-h="OpenAI">2–8 周</td><td data-h="Anthropic">快时 3–4 周；含匹配可达 3 个月以上</td></tr>
+              <tr><td data-h="维度">最常见的挂法</td><td data-h="OpenAI">编码分弱；只刷 LeetCode 式备考；项目深挖太浅</td><td data-h="Anthropic">价值观轮；过度设计；使命回答泛泛；匹配停滞</td></tr>
+              <tr><td data-h="维度">谈判（仅背景）</td><td data-h="OpenAI">报告称立场更硬</td><td data-h="Anthropic">报告称可谈（一份较旧的综合来源持异议）</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ PLAN ============ -->
+      <section id="plan">
+        <h2>备考计划（按优先级）</h2>
+        <p class="sub">为「Amazon SDE II、6 年分布式系统」画像定制。<b>你的不公平优势：</b>生产级分布式系统、事故处理、规模、ownership 故事。<b>你的差距：</b>无自动补全/IDE 时从零写 Python 的速度、LLM 系统词汇，以及（对 Anthropic）价值观轮的深度。以下顺序按「失败率 × 差距」排序。</p>
+
+        <div class="plan-step">
+          <span class="prio p0">P0 · 先做这些（失败率最高的项）</span>
+          <h3>1. Build-and-extend 编码：Python、限时、关掉自动补全，在 CoderPad/CodeSignal 式编辑器里练</h3>
+          <p>这是<em>两家</em>共同的核心测试，也是与 Amazon 流程最大的风格差异。按顺序练到每题能在约 50–60 分钟内带测试完成：</p>
+          <ul>
+            <li>内存 DB/KV：SET/GET/DELETE → scan/过滤 → TTL → 持久化/压缩（同时服务 Anthropic OA 与 OpenAI 的 KV/LSM 变体）</li>
+            <li>可恢复迭代器（列表 → JSON 文件 → 多文件 → 嵌套）</li>
+            <li>银行/账本系统，含一个乱序事件 + 过期规则的 GPU-credit 账本变体</li>
+            <li>带符号链接的 <code>cd</code>；带环检测的电子表格</li>
+            <li>并发 Web 爬虫（有界、去重、失败处理）——然后把其他每个解法都做一遍并发版</li>
+            <li>文件去重（大小 → 哈希）；调用栈 profiler（从采样找最久的函数）；函数缓存 + 持久化</li>
+          </ul>
+          <p><b>练习规则：</b>先让第 1 部分能跑再优化；边写边补测试；全程出声讲解（Anthropic 现场轮惩罚沉默）；写完后给自己加一个 surprise 需求，不重写地吸收它。</p>
+          <h3>2. 一个项目深挖，武器化</h3>
+          <p>选你最强的 Amazon 系统（端到端 own、有事故、有硬权衡）。准备两个版本：20 分钟的 Anthropic 版和 45 分钟带 slides 的 OpenAI 版。演练追问：你<em>个人</em> own 了什么 vs 团队？为什么 X 不选 Y？指标——你怎么知道它有效？那次事故，诚实讲。10 倍规模先坏哪里？会怎么做不同？<b>在这一项上讲得浅，会让强 coder 在两家都挂掉。</b></p>
+          <h3>3. 你的价值观/安全立场——写下来、具体、能扛 3 层追问</h3>
+          <ul>
+            <li><b>Anthropic 版：</b>读 Core Views on AI Safety、Responsible Scaling Policy、Constitutional AI 论文摘要。准备好：一个真诚的认同、一个对 Anthropic 方向的真诚<b>批评</b>、一个工作中的道德冲突故事（和谁谈了、什么改变了你的想法）、一个你捍卫过的不寻常信念、一次改变想法的经历、一个你真实做过的安全优先取舍。练习在被好论点推动时<em>当场更新</em>自己的观点。</li>
+            <li><b>OpenAI 版：</b>对 AGI 时间线/影响、开放研究 vs 商业化、滥用风险的成型看法，以及对「如果被要求无安全测试上线你会怎么做？」和「为什么是 OpenAI 而不是 Anthropic/DeepMind？」的直接回答——两个答案不能互换着用。</li>
+          </ul>
+        </div>
+
+        <div class="plan-step">
+          <span class="prio p1">P1 · 系统设计，实验室风味（你的强项——调风味，不用重学基础）</span>
+          <h3>4. 五道题端到端练，每道 55 分钟，前 10 分钟先算容量账</h3>
+          <p>(a) 推理批处理系统：单 GPU → GPU 集群（Anthropic 标志题）；(b) 带 RBAC 的 LLM 企业搜索（OpenAI 标志题）；(c) 100K rps 的 token 生成 / LLM 推理服务（连续批处理、KV-cache 显存预算、prefill vs decode、准入控制、流式）；(d) Claude/ChatGPT 聊天服务（历史、流式、多问题线程）；(e) 一道经典题（webhook 投递、限流器或 GitHub Actions）——OpenAI 仍然重考经典题。</p>
+          <h3>5. 至少用 Anthropic 的形式练两次</h3>
+          <p>打字写进文档、接受面试官打断/主导节奏，外加一次<b>设计评审</b>练习（批判一份故意有缺陷的推理批处理设计：失败处理、过载保护）。</p>
+          <h3>6. LLM 系统速查表——要能<em>用</em>，不是能背</h3>
+          <p>token/上下文预算、KV cache、连续 vs 静态批处理、speculative decoding（概念）、量化（FP8/INT8/INT4 权衡）、PagedAttention（概念）、SSE vs WebSocket 流式、429/Retry-After + 公平队列、语义缓存、RAG vs 微调的决策、evals（离线集、LLM-as-judge 的局限、回归门禁）。</p>
+        </div>
+
+        <div class="plan-step">
+          <span class="prio p2">P2 · 通用岗的 ML 素养（以天计，不以周计）</span>
+          <h3>7. 一小时讲清 Transformer，工程师级别</h3>
+          <p>分词（BPE、贪心最长匹配）、embedding + 位置、自注意力、KV cache 为何成立、layer norm 的作用、prefill/decode。能白板画一次前向传播并解释长程依赖。在两家 API 上各做一个小东西（一个带 evals 的、基于自己文档的 RAG + 一个懂 token/限流的客户端）——一位成功的 OpenAI 候选人称这才是真正帮到他的备考。</p>
+          <h3>8. 仅当瞄准 ML/infra MTS track 时</h3>
+          <p>从零 PyTorch/NumPy：注意力、一个 transformer block、简单算子的手写反向、KV-cache 实现、transformer 捉虫练习、all_gather 语义。通用 SWE 流程不要把时间花在这里（ML 编码在 OpenAI 报告编码题中只占 8/84）。</p>
+        </div>
+
+        <div class="plan-step">
+          <span class="prio p3">P3 · 真正影响结果的后勤</span>
+          <h3>9. Recruiter 电话上问清</h3>
+          <p>确切的轮次列表与顺序；现场还是 take-home；是否有 design <em>screen</em> 之外再加 onsite 设计；<em>你的</em>轮次的 AI 政策；语言/环境（CoderPad vs CodeSignal vs Colab）；你在按什么级别被 loop。两家的流程都变得太厉害，不能盲备。</p>
+          <h3>10. 提前备好推荐人</h3>
+          <p>在 onsite <em>之前</em>就选定并打好招呼两位推荐人（一位是 manager）——Anthropic 在周期中就查；OpenAI 可能在决策时要。尽早告诉两位 recruiter 你的竞争 offer 截止日期（两家都会加速）。</p>
+          <h3>11. 两个「Why」各练到 90 秒</h3>
+          <p>实验室专属、且<em>彼此不同</em>——把 Anthropic 的答案用在 OpenAI（或反过来），是两家 recruiter screen 都点名过的失败方式。</p>
+        </div>
+
+        <h3>建议节奏（约 4 周，兼职）</h3>
+        <div class="weeks">
+          <div class="wk"><b>第 1 周</b>P0.1 编码题族 1–3 + 开始 P0.3 的阅读</div>
+          <div class="wk"><b>第 2 周</b>P0.1 题族 4–6 + P0.2 项目深挖</div>
+          <div class="wk"><b>第 3 周</b>P1 设计题（5 道 + 1 次评审练习）+ P2</div>
+          <div class="wk"><b>第 4 周</b>限时全真模拟（一场 OpenAI 形态：编码 + 重构 + 设计；一场 Anthropic 形态：90 分钟 CodeSignal 模拟 + 价值观 mock）、价值观答案压力测试、后勤确认</div>
+        </div>
+      </section>
+
+      <!-- ============ CAVEATS ============ -->
+      <section id="caveats">
+        <h2>未能证实 / 开放问题</h2>
+        <ul>
+          <li><b>不存在官方题库。</b>Glassdoor/Blind 帖子有付费墙/匿名；多数细节来自备考平台对这些报告的综合（IGotAnOffer、Hello Interview、InterviewQuery、DesignGurus），以及 Land the Lab 的两份 2026 年 10 月统计——其方法论说明自述文本由 AI 起草并对照其数据核对过。题目<em>描述</em>在独立来源间一致；确切的<em>频率/排名</em>主要靠 Land the Lab 的计数，应按方向性看待。</li>
+          <li><b>CodeSignal 及格线：未解决的冲突</b>（520/600 vs 800/850 vs 近满分者被拒）——可能是不同年份/岗位用了不同 CodeSignal 框架。没有来源能裁决，本页三种说法并列。</li>
+          <li><b>PrepInsta：</b>专门检索过，没有找到针对 OpenAI/Anthropic MTS 的实质页面，未贡献可用内容（与调研任务的预期相反）。LeetCode Discuss 同样只经由类比题出现（如 Anthropic 爬虫题对应 LC 1242）；1point3acres 帖子需登录（标题印证了 resumable-iterator / <code>cd</code> / SQL 题族）。</li>
+          <li><b>「Bar raiser」作为命名轮次：</b>没有任何来源报告两家有 Amazon 式的 bar raiser。对比表中的功能等价物（OpenAI：编码门槛 + hiring committee；Anthropic：文化面否决 + 团队匹配）是本报告的综合判断，不是公司用语。</li>
+          <li><b>Agentic / Claude Code 面试轮（2026）：</b>两家各有单一综合来源报告（OpenAI 为 SupaCV；Anthropic 为 Land the Lab）。可信且值得向 recruiter 确认，但尚不是已确认的标准轮次。</li>
+          <li><b>Anthropic 的 LLM 与提示工程轮（SWE）：</b>IGotAnOffer 列为标准轮，其他来源认为是团队相关。未解决——问 recruiter。</li>
+          <li>薪酬不在范围内，仅在涉及谈判预期处提及，且该处来源冲突（已在正文标注）。</li>
+        </ul>
+      </section>
+
+      <!-- ============ SOURCES ============ -->
+      <section id="sources">
+        <h2>全部来源</h2>
+        <p class="sub">全部于 2026 年 10 月 22 日通过网页索引/页面抓取读取。</p>
+        <h4>OpenAI</h4>
+        <ul class="src-list">
+          <li><a href="https://igotanoffer.com/en/advice/openai-software-engineer-interview" target="_blank" rel="noopener">IGotAnOffer — OpenAI Software Engineer Interview</a> <span class="when">（2026-10-14 更新）</span></li>
+          <li><a href="https://igotanoffer.com/en/advice/openai-system-design-interview" target="_blank" rel="noopener">IGotAnOffer — OpenAI System Design Interviews</a> <span class="when">（2026-09-21 更新）</span></li>
+          <li><a href="https://www.hellointerview.com/blog/openai-coding-questions" target="_blank" rel="noopener">Hello Interview — OpenAI Coding Interviews 2025: Real Questions from Real Candidates</a></li>
+          <li><a href="https://www.hellointerview.com/guides/openai/l4" target="_blank" rel="noopener">Hello Interview — OpenAI L4 Interview Guide</a> <span class="when">（2026；含 webhook take-home 报告）</span></li>
+          <li><a href="https://medium.com/@landthelab/the-12-coding-questions-openai-keeps-asking-its-screen-bans-autocomplete-ce9011f08817" target="_blank" rel="noopener">Land the Lab（Medium，2026 年 10 月）— OpenAI 反复问的 12 道编码题（n=144）</a></li>
+          <li><a href="https://www.glassdoor.ie/Interview/OpenAI-Interview-E2210885-RVW93521232.htm" target="_blank" rel="noopener">Glassdoor — OpenAI SWE 面试（2026 年 10 月，经搜索索引）</a></li>
+          <li><a href="https://www.interviewquery.com/guides/openai-software-engineer" target="_blank" rel="noopener">InterviewQuery — OpenAI Software Engineer Interview Guide</a></li>
+          <li><a href="https://www.designgurus.io/blog/openai-interview-guide" target="_blank" rel="noopener">DesignGurus — OpenAI Interview Guide</a> <span class="when">（ML/研究题、行为面）</span></li>
+          <li><a href="https://www.designgurus.io/blog/openai-full-stack-engineer-interview" target="_blank" rel="noopener">DesignGurus — OpenAI Full Stack Engineer Interview</a> <span class="when">（重构轮）</span></li>
+          <li><a href="https://supacv.com/blog/interview-playbook/openai" target="_blank" rel="noopener">SupaCV — How OpenAI Interviews in 2026</a> <span class="when">（价值观清单、agentic coding beta）</span></li>
+          <li><a href="https://trueinterview.io/study/openai-interview-process" target="_blank" rel="noopener">TrueInterview — OpenAI Interview Process &amp; Questions</a></li>
+          <li><a href="https://www.linkjob.ai/interview-questions/openai-coding-interview/" target="_blank" rel="noopener">Linkjob — 2026 OpenAI Coding Interview Question Bank</a> <span class="when">（resumable iterator、cd 细节）</span></li>
+          <li><a href="https://www.educative.io/courses/openai-system-design-interview-questions" target="_blank" rel="noopener">Educative — OpenAI System Design Interview Questions</a> <span class="when">（LLM 服务 FAQ）</span></li>
+          <li><a href="https://www.techinterview.org/post/3233475331/ai-inference-infrastructure-interview-prep-2026-vllm-triton/" target="_blank" rel="noopener">TechInterview — AI Inference Infrastructure Interview Prep 2026</a> <span class="when">（背景材料）</span></li>
+        </ul>
+        <h4>Anthropic</h4>
+        <ul class="src-list">
+          <li><a href="https://igotanoffer.com/en/advice/anthropic-interview-process" target="_blank" rel="noopener">IGotAnOffer — Anthropic Interview Process &amp; Timeline</a> <span class="when">（2026-10-19 更新）</span></li>
+          <li><a href="https://www.hellointerview.com/guides/anthropic/swe" target="_blank" rel="noopener">Hello Interview — Anthropic Software Engineer Interview Guide</a> <span class="when">（2026）</span></li>
+          <li><a href="https://medium.com/@landthelab/the-5-coding-questions-anthropic-keeps-asking-and-the-round-most-people-fail-562d414e4173" target="_blank" rel="noopener">Land the Lab（Medium/dev.to，2026 年 10 月）— Anthropic 反复问的 5 道编码题（n=72）</a></li>
+          <li><a href="http://dev.to/frontierloop/what-the-anthropic-openai-swe-interview-loop-is-actually-like-from-60-reported-accounts-1c3g" target="_blank" rel="noopener">FrontierLoop（dev.to，2026-06-25）— 基于 60+ 份报告的两家流程</a></li>
+          <li><a href="https://www.coditioning.com/blog/15/anthropic-system-design-interview-questions" target="_blank" rel="noopener">Coditioning — Anthropic System Design Interview Questions</a> <span class="when">（2025 年 9 月确认题目）</span></li>
+          <li><a href="https://customcareer.miami.edu/blog/2026/05/14/get-a-job-at-anthropic-interview-process-and-top-questions/" target="_blank" rel="noopener">University of Miami / InterviewQuery — Get a Job at Anthropic</a> <span class="when">（2026 年 5 月；编码/设计/行为题单、两段式 onsite）</span></li>
+          <li><a href="https://www.linkjob.ai/interview-questions/anthropic-software-engineer-interview/" target="_blank" rel="noopener">Linkjob — My 2026 Anthropic SWE Interview Process and Actual Questions</a> <span class="when">（内存 DB 各关细节）</span></li>
+          <li><a href="https://www.sundeepteki.org/advice/anthropic-codesignal-assessment-guide" target="_blank" rel="noopener">Sundeep Teki — Anthropic CodeSignal Assessment Guide</a> <span class="when">（题型；520/600 说法）</span></li>
+          <li><a href="https://fonzi.ai/blog/anthropic-codesignal" target="_blank" rel="noopener">Fonzi — Anthropic CodeSignal Interview: Format, Questions and Prep</a></li>
+          <li><a href="https://www.finalroundai.com/blog/how-to-ace-your-anthropic-code-signal-assessment-a-step-by-step-guide" target="_blank" rel="noopener">FinalRoundAI — How to Ace Your Anthropic CodeSignal Assessment</a> <span class="when">（800/850 说法）</span></li>
+          <li><a href="https://www.chillinterview.com/learn/interview-guides/anthropic-software-engineer-interview-guide" target="_blank" rel="noopener">ChillInterview — Anthropic Software Engineer Interview Guide</a> <span class="when">（2026）</span></li>
+          <li><a href="https://jobright.ai/blog/anthropic-technical-interview-questions-complete-guide-2026/" target="_blank" rel="noopener">Jobright — Anthropic Technical Interview Questions: Complete Guide 2026</a></li>
+          <li><a href="https://www.interviewquery.com/guides/anthropic-software-engineer" target="_blank" rel="noopener">InterviewQuery — Anthropic Software Engineer Interview Guide</a></li>
+          <li><a href="https://www.designgurus.io/answers/detail/what-to-expect-in-the-anthropic-system-design-interview" target="_blank" rel="noopener">DesignGurus — What to Expect in the Anthropic System Design Interview</a> <span class="when">（推理批处理）</span></li>
+          <li><a href="https://www.theforwarddeployed.io/interviews/anthropic/questions" target="_blank" rel="noopener">TheForwardDeployed — Anthropic System Design Interview Questions</a></li>
+          <li><a href="https://www.beckershospitalreview.com/healthcare-information-technology/ai/what-it-takes-to-get-a-job-at-anthropic/" target="_blank" rel="noopener">Becker's / Bloomberg Businessweek（2026 年 5 月）— Anthropic 的非常规招聘打法</a> <span class="when">（文化面、Amodei 不寻常信念原话）</span></li>
+          <li><a href="https://www.implicator.ai/at-anthropic-the-culture-interview-is-the-top-late-stage-hiring-gate/" target="_blank" rel="noopener">Implicator — Anthropic's Culture Interview Is Its Top Hiring Gate</a> <span class="when">（interviewing.io 数据）</span></li>
+          <li><a href="https://www.metaintro.com/blog/inside-anthropic-brutal-hiring-process-bans-ai-interviews" target="_blank" rel="noopener">Metaintro（汇总 Fortune，2025-07-21）— Anthropic 招聘流程与 AI 政策反转</a></li>
+        </ul>
+      </section>
+
+      <footer>
+        <p>本页为 2026 年 10 月 22 日的调研快照：两家公司均不公布官方题库或完整流程，以上均为候选人报告与备考平台综合，置信度标注见正文。流程因团队而异——以你 recruiter 给出的确切轮次为准。</p>
+      </footer>
+
+    </div>
+  </body>
+</html>
